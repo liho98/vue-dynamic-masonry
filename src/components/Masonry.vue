@@ -79,10 +79,15 @@ export default Vue.extend({
       masonry.forEach((children, index) => {
         children.$el.getElementsByTagName("img").forEach(img => {
           if (img.complete) {
-            callback(children, children.$el.clientHeight, index);
+            callback(children, children.$el.clientHeight, index, img.complete);
           } else {
             img.onload = () => {
-              callback(children, children.$el.clientHeight, index);
+              callback(
+                children,
+                children.$el.clientHeight,
+                index,
+                img.complete
+              );
             };
           }
         });
@@ -95,18 +100,30 @@ export default Vue.extend({
       let columnsElem = <any>Array.from(self.$el.children);
       let shortestColumn = <any>null;
 
-      self.imageCallback(self.masonry, (children, clientHeight, index) => {
-        shortestColumn = columnsElem.reduce((prev, cur) => {
-          return prev.clientHeight <= cur.clientHeight ? prev : cur;
-        });
-        shortestColumn.appendChild(children.$el);
+      self.imageCallback(
+        self.masonry,
+        (children, clientHeight, index, complete) => {
+          if (complete) count++;
 
-        if (self.$parent.$parent.$parent.$parent.$refs.tabSwiper.$swiper) {
-          self.$parent.$parent.$parent.$parent.$refs.tabSwiper.$swiper.updateAutoHeight(
-            500
-          );
+          if (self.masonry.length === count) {
+            while (self.masonry.length) {
+              shortestColumn = columnsElem.reduce((prev, cur) => {
+                return prev.clientHeight <= cur.clientHeight ? prev : cur;
+              });
+              shortestColumn.appendChild(self.masonry.shift().$el);
+
+              if (
+                self.$parent.$parent.$parent.$parent.$refs.tabSwiper.$swiper
+              ) {
+                self.$parent.$parent.$parent.$parent.$refs.tabSwiper.$swiper.updateAutoHeight(
+                  500
+                );
+              }
+              self.$forceUpdate();
+            }
+          }
         }
-      });
+      );
 
       // self.masonry.forEach(children => {
       //   imgs.push(...children.$el.getElementsByTagName("img"));
