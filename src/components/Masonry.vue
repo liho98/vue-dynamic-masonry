@@ -11,7 +11,7 @@ export default Vue.extend({
       type: [Number],
       default: 0
     },
-    waitImage: {
+    isWaitImage: {
       type: [Boolean],
       default: true
     }
@@ -19,6 +19,7 @@ export default Vue.extend({
   data() {
     return {
       masonry: [],
+      loader: [],
       slotsIndexPointer: 0
     };
   },
@@ -48,38 +49,49 @@ export default Vue.extend({
     );
   },
   created() {
-    // let self = <any>this;
-  },
-  beforeMount() {
     let self = <any>this;
 
-    self.masonry = self.$slots.default.map((slot, index) => {
-      return <any>new Vue({
-        render(f) {
-          return slot;
-        }
-      }).$mount();
-    });
-    self.slotsIndexPointer = self.$slots.default.length;
+    if (self.isWaitImage) {
+      if (self.$slots.loader) {
+        self.loader = self.$slots.loader.map((slot, index) => {
+          return <any>new Vue({
+            render(f) {
+              return slot;
+            }
+          }).$mount();
+        });
+      }
+    } else {
+      self.masonry = self.$slots.default.map((slot, index) => {
+        return <any>new Vue({
+          render(f) {
+            return slot;
+          }
+        }).$mount();
+      });
+      self.slotsIndexPointer = self.$slots.default.length;
+    }
   },
   mounted() {
     let self = <any>this;
+    let columnsElem = <any>Array.from(self.$el.children);
 
-    if (self.waitImage) {
-      self.layout();
+    if (self.isWaitImage) {
+      if (self.$slots.loader) {
+        columnsElem.forEach((children, index) => {
+          children.appendChild(self.loader[index].$el);
+        });
+      }
     } else {
       self.masonry.forEach((children, index) => {
         self.$el.children[index % self.cols].appendChild(children.$el);
       });
-      if (self.$parent.$parent.$parent.$parent.$refs.tabSwiper.$swiper) {
-        self.$parent.$parent.$parent.$parent.$refs.tabSwiper.$swiper.updateAutoHeight(
-          500
-        );
-      }
+      this.$emit("isRendered", true);
     }
   },
   beforeUpdate() {
     let self = <any>this;
+    let columnsElem = <any>Array.from(self.$el.children);
 
     for (let i = self.slotsIndexPointer; i < self.$slots.default.length; i++) {
       self.masonry.push(
@@ -94,22 +106,31 @@ export default Vue.extend({
   },
   updated() {
     let self = <any>this;
-    self.layout();
+    let columnsElem = <any>Array.from(self.$el.children);
+
+    if (self.isWaitImage) {
+      if (self.$slots.loader) {
+        columnsElem.forEach((children, index) => {
+          children.appendChild(self.loader[index].$el);
+        });
+      }
+      self.layout();
+    } else {
+      self.masonry.forEach((children, index) => {
+        self.$el.children[index % self.cols].appendChild(children.$el);
+      });
+      this.$emit("isRendered", true);
+    }
   },
   methods: {
-    imageCallback(masonry, callback) {
+    isImageLoaded(masonry, callback) {
       masonry.forEach((children, index) => {
         children.$el.getElementsByTagName("img").forEach(img => {
           if (img.complete) {
-            callback(children, children.$el.clientHeight, index, img.complete);
+            callback(img.complete, index);
           } else {
             img.onload = () => {
-              callback(
-                children,
-                children.$el.clientHeight,
-                index,
-                img.complete
-              );
+              callback(img.complete, index);
             };
           }
         });
@@ -122,28 +143,26 @@ export default Vue.extend({
       let shortestColumn = <any>null;
       let count = 0;
 
-      self.imageCallback(
-        self.masonry,
-        (children, clientHeight, index, complete) => {
-          if (complete) count++;
+      self.isImageLoaded(self.masonry, (complete, index) => {
+        if (complete) count++;
 
-          if (self.masonry.length === count) {
-            while (self.masonry.length) {
-              shortestColumn = columnsElem.reduce((prev, cur) => {
-                return prev.clientHeight <= cur.clientHeight ? prev : cur;
-              });
-              shortestColumn.appendChild(self.masonry.shift().$el);
-              if (
-                self.$parent.$parent.$parent.$parent.$refs.tabSwiper.$swiper
-              ) {
-                self.$parent.$parent.$parent.$parent.$refs.tabSwiper.$swiper.updateAutoHeight(
-                  500
-                );
-              }
-            }
+        if (self.masonry.length === count) {
+          while (self.masonry.length) {
+            shortestColumn = columnsElem.reduce((prev, cur) => {
+              return prev.clientHeight <= cur.clientHeight ? prev : cur;
+            });
+            shortestColumn.appendChild(self.masonry.shift().$el);
           }
+
+          if (self.$slots.loader) {
+            columnsElem.forEach((children, i) => {
+              children.appendChild(self.loader[i].$el);
+            });
+          }
+
+          this.$emit("isRendered", true);
         }
-      );
+      });
     }
   }
 });
