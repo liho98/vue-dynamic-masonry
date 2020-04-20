@@ -18,7 +18,8 @@ export default Vue.extend({
   },
   data() {
     return {
-      masonry: []
+      masonry: [],
+      slotsIndexPointer: 0
     };
   },
   render(createElement) {
@@ -47,16 +48,19 @@ export default Vue.extend({
     );
   },
   created() {
+    // let self = <any>this;
+  },
+  beforeMount() {
     let self = <any>this;
 
-    for (let i = 0; i < self.$slots.default.length; i++) {
-      var vm = <any>new Vue({
+    self.masonry = self.$slots.default.map((slot, index) => {
+      return <any>new Vue({
         render(f) {
-          return self.$slots.default[i];
+          return slot;
         }
       }).$mount();
-      self.masonry.push(vm);
-    }
+    });
+    self.slotsIndexPointer = self.$slots.default.length;
   },
   mounted() {
     let self = <any>this;
@@ -73,6 +77,24 @@ export default Vue.extend({
         );
       }
     }
+  },
+  beforeUpdate() {
+    let self = <any>this;
+
+    for (let i = self.slotsIndexPointer; i < self.$slots.default.length; i++) {
+      self.masonry.push(
+        <any>new Vue({
+          render(f) {
+            return self.$slots.default[i];
+          }
+        }).$mount()
+      );
+    }
+    self.slotsIndexPointer = self.$slots.default.length;
+  },
+  updated() {
+    let self = <any>this;
+    self.layout();
   },
   methods: {
     imageCallback(masonry, callback) {
@@ -96,9 +118,9 @@ export default Vue.extend({
     layout() {
       // Dynamic masonry algorithm
       let self = <any>this;
-      let count = 0;
       let columnsElem = <any>Array.from(self.$el.children);
       let shortestColumn = <any>null;
+      let count = 0;
 
       self.imageCallback(
         self.masonry,
@@ -111,7 +133,6 @@ export default Vue.extend({
                 return prev.clientHeight <= cur.clientHeight ? prev : cur;
               });
               shortestColumn.appendChild(self.masonry.shift().$el);
-
               if (
                 self.$parent.$parent.$parent.$parent.$refs.tabSwiper.$swiper
               ) {
@@ -119,49 +140,11 @@ export default Vue.extend({
                   500
                 );
               }
-              self.$forceUpdate();
             }
           }
         }
       );
-
-      // self.masonry.forEach(children => {
-      //   imgs.push(...children.$el.getElementsByTagName("img"));
-      // });
-
-      // if (img.complete) {
-      //   count = count + 1;
-      // }
-      // if (self.masonry.length === count) {
-      //   while (self.masonry.length) {
-      //     shortestColumn = columnsElem.reduce((prev, cur) => {
-      //       return prev.clientHeight <= cur.clientHeight ? prev : cur;
-      //     });
-      //     shortestColumn.appendChild(self.masonry.shift().$el);
-      //   }
-      // }
     }
-    // imageCallback(imgs, callback): void {
-    //   imgs.forEach(img => {
-    //     if (img.complete) {
-    //       callback(
-    //         img,
-    //         img.width,
-    //         img.height,
-    //         Number(img.height) / Number(img.width)
-    //       );
-    //     } else {
-    //       img.onload = () => {
-    //         callback(
-    //           img,
-    //           img.width,
-    //           img.height,
-    //           Number(img.height) / Number(img.width)
-    //         );
-    //       };
-    //     }
-    //   });
-    // },
   }
 });
 </script>
