@@ -1,30 +1,34 @@
 <script lang="ts">
-import { Vue, Component, Prop, Emit } from "vue-property-decorator";
+import { Vue, Component, Prop, Emit, Watch } from "vue-property-decorator";
 
 @Component
 export default class Masonry extends Vue {
-  @Prop({ type: [Number], default: 2 }) cols!: boolean;
-  @Prop({ type: [Number], default: 0 }) gutter!: boolean;
-  @Prop({ type: [Boolean], default: false }) isWaitImage!: boolean;
+  @Prop({ type: Number, default: 2 }) cols!: number;
+  @Prop({ type: Number, default: 0 }) gutter!: number;
+  @Prop({ type: Boolean, default: false }) isWaitImage!: boolean;
 
-  private masonry: Array<any> = [];
-  private loader: Array<any> = [];
-  private slotsIndexPointer: number = 0;
+  private masonry: Array<any> | any = [];
+  private loader: Array<any> | any = null;
+  private isLoading: boolean = true;
 
   render(createElement) {
-    let self = <any>this;
+    console.log("render", this.$slots.default?.length);
     let columns = <any>[];
 
-    for (let i = 0; i < self.cols; i++) {
+    for (let i = 0; i < this.cols; i++) {
       columns.push(
-        createElement("div", {
-          class: ["masonry__elem--margin-left flex flex-col flex-wrap"],
-          style: {
-            width: 100 / self.cols - self.gutter + "%",
-            "flex-basis": 100 / self.cols + "%",
-            height: "fit-content"
-          }
-        })
+        createElement(
+          "div",
+          {
+            class: ["masonry__elem--margin-left flex flex-col flex-wrap"],
+            style: {
+              width: 100 / this.cols - this.gutter + "%",
+              "flex-basis": 100 / this.cols + "%",
+              height: "fit-content"
+            }
+          },
+          this.$slots.loader !== null ? this.$slots.loader : null
+        )
       );
     }
 
@@ -38,92 +42,79 @@ export default class Masonry extends Vue {
     );
   }
 
-  created() {
-    let self = <any>this;
+  beforeCreate() {
+    // console.log("beforeCreate", this.$slots.default?.length);
+  }
 
-    if (self.isWaitImage) {
-      if (self.$slots.loader) {
-        self.loader = self.$slots.loader.map((slot, index) => {
-          return <any>new Vue({
-            render(f) {
-              return slot;
-            }
-          }).$mount();
-        });
-      }
-    } else {
-      self.masonry = self.$slots.default.map((slot, index) => {
-        return <any>new Vue({
-          render(f) {
-            return slot;
-          }
-        }).$mount();
-      });
-      self.slotsIndexPointer = self.$slots.default.length;
+  created() {
+    // console.log("created", this.$slots.default?.length);
+    if (this.$slots.default) {
+      this.masonry = this.getMasonryItems();
     }
+    if (this.$slots.loader) {
+      this.loader = this.getLoader();
+      console.log(this.loader);
+    }
+    // console.log("this.loader", this.loader);
+  }
+
+  beforeMount() {
+    // console.log("beforeMount", this.$slots.default?.length);
   }
 
   mounted() {
-    let self = <any>this;
-    let columnsElem = <any>Array.from(self.$el.children);
-
-    if (self.isWaitImage) {
-      if (self.$slots.loader) {
-        columnsElem.forEach((children, index) => {
-          children.appendChild(self.loader[index].$el);
-        });
-      }
-    } else {
-      self.masonry.forEach((children, index) => {
-        self.$el.children[index % self.cols].appendChild(children.$el);
-      });
-      this.$emit("isRendered", true);
-    }
+    // console.log("mounted", this.$slots.default?.length);
+    this.layout();
   }
 
   beforeUpdate() {
-    let self = <any>this;
-    let columnsElem = <any>Array.from(self.$el.children);
-    if (self.$slots.default) {
-      for (
-        let i = self.slotsIndexPointer;
-        i < self.$slots.default.length;
-        i++
-      ) {
-        self.masonry.push(
-          <any>new Vue({
-            render(f) {
-              return self.$slots.default[i];
-            }
-          }).$mount()
-        );
-      }
-      self.slotsIndexPointer = self.$slots.default.length;
+    console.log("beforeUpdate", this.$slots.default?.length);
+
+    if (this.$slots.default) {
+      this.masonry = this.getMasonryItems();
     }
   }
-
   updated() {
-    let self = <any>this;
-    let columnsElem = <any>Array.from(self.$el.children);
-
-    if (self.isWaitImage) {
-      if (self.$slots.loader) {
-        columnsElem.forEach((children, index) => {
-          children.appendChild(self.loader[index].$el);
-        });
-      }
-      self.layout();
-    } else {
-      self.masonry.forEach((children, index) => {
-        self.$el.children[index % self.cols].appendChild(children.$el);
-      });
-      this.$emit("isRendered", true);
-    }
+    console.log("updated", this.$slots.default?.length);
+    this.layout();
   }
 
-  public isImageLoaded(masonry, callback): void {
-    let self = <any>this;
+  beforeDestroy() {
+    // console.log("beforeDestroy", this.$slots.default?.length);
+  }
+  destroyed() {
+    // console.log("destroyed", this.$slots.default?.length);
+  }
 
+  public getLoader(): any {
+    return this.$slots.loader!.map(slot => {
+      return new Vue({
+        render(f) {
+          return slot;
+        }
+      }).$mount();
+    });
+  }
+
+  public getMasonryItems(): any {
+    return this.$slots.default!.map(slot => {
+      return new Vue({
+        render(f) {
+          return slot;
+        }
+      }).$mount();
+    });
+  }
+
+  public removeAllChilds(parent): void {
+    parent.children.forEach(children => {
+      while (children.lastChild) {
+        children.removeChild(children.lastChild);
+      }
+    });
+  }
+
+  public isImagesLoaded(masonry, callback): void {
     masonry.forEach((children, index) => {
       children.$el.getElementsByTagName("img").forEach(img => {
         if (img.complete) {
@@ -145,26 +136,30 @@ export default class Masonry extends Vue {
 
   public layout(): void {
     // Dynamic masonry algorithm
-    let self = <any>this;
-    let columnsElem = <any>Array.from(self.$el.children);
+    let columnsElem = <any>Array.from((<any>this.$refs.masonry).children);
     let shortestColumn = <any>null;
     let count = 0;
 
-    self.isImageLoaded(self.masonry, (complete, index) => {
+    this.isImagesLoaded(this.masonry, (complete, index) => {
       if (complete) count++;
 
-      if (self.masonry.length === count) {
-        while (self.masonry.length) {
+      if (this.masonry.length === count) {
+        this.removeAllChilds(<any>this.$refs.masonry);
+
+        this.masonry.forEach(children => {
           shortestColumn = columnsElem.reduce((prev, cur) => {
             return prev.clientHeight <= cur.clientHeight ? prev : cur;
           });
-          shortestColumn.appendChild(self.masonry.shift().$el);
-        }
+          shortestColumn.appendChild(children.$el);
+        });
 
-        if (self.$slots.loader) {
-          columnsElem.forEach((children, i) => {
-            children.appendChild(self.loader[i].$el);
-          });
+        if (this.loader != null) {
+          for (let i = 0; i < this.cols; i++) {
+            shortestColumn = columnsElem.reduce((prev, cur) => {
+              return prev.clientHeight <= cur.clientHeight ? prev : cur;
+            });
+            shortestColumn.appendChild(this.loader[i].$el);
+          }
         }
 
         this.$emit("isRendered", true);
