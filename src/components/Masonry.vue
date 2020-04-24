@@ -110,7 +110,7 @@ export default class Masonry extends Vue {
     });
   }
 
-  public isImagesLoaded(masonry, callback): void {
+  public imagesLoaded(masonry, callback): void {
     masonry.forEach((children, index) => {
       children.$el.getElementsByTagName("img").forEach(img => {
         if (img.complete) {
@@ -136,7 +136,7 @@ export default class Masonry extends Vue {
     let shortestColumn = <any>null;
     let count = 0;
 
-    this.isImagesLoaded(this.masonry, (complete, index) => {
+    this.imagesLoaded(this.masonry, (complete, index) => {
       if (complete) count++;
 
       if (this.masonry.length === count) {
