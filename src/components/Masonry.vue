@@ -9,10 +9,9 @@ export default class Masonry extends Vue {
 
   private masonry: Array<any> | any = [];
   private loader: Array<any> | any = null;
-  private isLoading: boolean = true;
 
   render(createElement) {
-    console.log("render", this.$slots.default?.length);
+    // console.log("render", this.$slots.default?.length);
     let columns = <any>[];
 
     for (let i = 0; i < this.cols; i++) {
@@ -20,11 +19,9 @@ export default class Masonry extends Vue {
         createElement(
           "div",
           {
-            class: ["masonry__elem--margin-left flex flex-col flex-wrap"],
+            class: ["masonry__elem--height flex flex-col flex-wrap"],
             style: {
-              width: 100 / this.cols - this.gutter + "%",
-              "flex-basis": 100 / this.cols + "%",
-              height: "fit-content"
+              width: 100 / this.cols - this.gutter + "%"
             }
           },
           this.$slots.loader !== null ? this.$slots.loader : null
@@ -53,7 +50,6 @@ export default class Masonry extends Vue {
     }
     if (this.$slots.loader) {
       this.loader = this.getLoader();
-      console.log(this.loader);
     }
     // console.log("this.loader", this.loader);
   }
@@ -68,14 +64,14 @@ export default class Masonry extends Vue {
   }
 
   beforeUpdate() {
-    console.log("beforeUpdate", this.$slots.default?.length);
+    // console.log("beforeUpdate", this.$slots.default?.length);
 
     if (this.$slots.default) {
       this.masonry = this.getMasonryItems();
     }
   }
   updated() {
-    console.log("updated", this.$slots.default?.length);
+    // console.log("updated", this.$slots.default?.length);
     this.layout();
   }
 
@@ -153,15 +149,14 @@ export default class Masonry extends Vue {
           shortestColumn.appendChild(children.$el);
         });
 
-        if (this.loader != null) {
-          for (let i = 0; i < this.cols; i++) {
-            shortestColumn = columnsElem.reduce((prev, cur) => {
-              return prev.clientHeight <= cur.clientHeight ? prev : cur;
-            });
-            shortestColumn.appendChild(this.loader[i].$el);
-          }
-        }
-
+        // if (this.loader != null) {
+        //   for (let i = 0; i < this.cols; i++) {
+        //     shortestColumn = columnsElem.reduce((prev, cur) => {
+        //       return prev.clientHeight <= cur.clientHeight ? prev : cur;
+        //     });
+        //     shortestColumn.appendChild(this.loader[i].$el);
+        //   }
+        // }
         this.$emit("isRendered", true);
       }
     });
@@ -174,8 +169,13 @@ export default class Masonry extends Vue {
   &__elem {
     -webkit-column-break-inside: avoid;
 
-    &--margin-left + &--margin-left {
-      margin-left: 1rem;
+    // &--margin-left + &--margin-left {
+    //   margin-left: 1rem;
+    // }
+
+    &--height {
+      height: fit-content;
+      height: -moz-fit-content;
     }
   }
 }
