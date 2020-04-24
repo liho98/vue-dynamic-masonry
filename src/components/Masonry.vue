@@ -5,11 +5,10 @@ import { Vue, Component, Prop, Emit, Watch } from "vue-property-decorator";
 export default class Masonry extends Vue {
   @Prop({ type: Number, default: 2 }) cols!: number;
   @Prop({ type: Number, default: 0 }) gutter!: number;
-  @Prop({ type: Boolean, default: false }) isWaitImage!: boolean;
+  // @Prop({ type: Boolean, default: false }) isWaitImage!: boolean;
 
   // data()
   private masonry: Array<any> | any = [];
-  private loader: Array<any> | any = null;
 
   // methods
   public removeAllChilds(parent): void {
