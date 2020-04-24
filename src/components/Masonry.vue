@@ -140,7 +140,9 @@ export default class Masonry extends Vue {
   }
   updated() {
     console.log("updated", this.$slots.default?.length);
-    this.layout();
+    this.$nextTick(() => {
+      this.layout();
+    });
   }
 
   beforeDestroy() {
