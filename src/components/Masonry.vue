@@ -11,13 +11,13 @@ export default class Masonry extends Vue {
   private masonry: Array<any> | any = [];
 
   // methods
-  public removeAllChilds(parent): void {
-    parent.children.forEach(children => {
-      while (children.lastChild) {
-        children.removeChild(children.lastChild);
-      }
-    });
-  }
+  // public removeAllChilds(parent): void {
+  //   parent.children.forEach(children => {
+  //     while (children.lastChild) {
+  //       children.removeChild(children.lastChild);
+  //     }
+  //   });
+  // }
 
   public imagesLoaded(masonry, callback): void {
     masonry.getElementsByTagName("img").forEach((img, index) => {
@@ -41,29 +41,30 @@ export default class Masonry extends Vue {
     // Dynamic masonry algorithm
     let masonryElem = <any>this.$refs.masonry;
     let columnsElem = <any>Array.from(masonryElem.children);
+    let columns = <any>[];
 
-    let defaultSlots = this.$slots.default || [];
+    let defaultSlots = this.$slots.default;
     let shortestColumn = <any>null;
 
     let imgCount = masonryElem.getElementsByTagName("img").length;
     let imgCompletedCount = 0;
 
+    columnsElem.forEach(children => {
+      columns.push({ elem: children, clientHeight: 0 });
+    });
+
     this.imagesLoaded(masonryElem, (complete, index) => {
       if (complete) imgCompletedCount++;
 
       if (imgCount === imgCompletedCount) {
-        masonryElem.children.forEach(children => {
-          while (children.lastChild) {
-            children.removeChild(children.lastChild);
-          }
-        });
-
-        defaultSlots.forEach(children => {
-          shortestColumn = columnsElem.reduce((prev, cur) => {
+        defaultSlots!.forEach(children => {
+          shortestColumn = columns.reduce((prev, cur) => {
             return prev.clientHeight <= cur.clientHeight ? prev : cur;
           });
-          shortestColumn.appendChild(children.elm);
+          shortestColumn.elem.appendChild(children.elm);
+          shortestColumn.clientHeight += (<any>children.elm).clientHeight;
         });
+        console.log(defaultSlots);
         this.$emit("isRendered", true);
       }
     });
@@ -73,12 +74,12 @@ export default class Masonry extends Vue {
   render(createElement) {
     console.log("render", this.$slots.default?.length);
 
-    let defaultSlots = this.$slots.default || [];
+    let defaultSlots = this.$slots.default;
     let columnsElem = <any>[];
     let columns = <any>[];
 
     // Loop through slots
-    for (let i = 0, j = 0; i < defaultSlots.length; i++, j++) {
+    for (let i = 0, j = 0; i < defaultSlots!.length; i++, j++) {
       // Get the column index the slot will end up in
       const columnIndex = j % this.cols;
 
@@ -86,7 +87,7 @@ export default class Masonry extends Vue {
         columns[columnIndex] = [];
       }
 
-      columns[columnIndex].push(defaultSlots[i]);
+      columns[columnIndex].push(defaultSlots![i]);
     }
 
     for (let i = 0; i < this.cols; i++) {
